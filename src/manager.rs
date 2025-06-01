@@ -1,12 +1,29 @@
+use crate::storage::Storage;
 use crate::task::{Task, TaskStatus};
 
-pub struct TaskManager {
+pub struct TaskManager<S> {
     tasks: Vec<Task>,
+    storage: S,
 }
 
-impl TaskManager {
-    pub fn new() -> Self {
-        TaskManager { tasks: Vec::new() }
+impl<S> TaskManager<S>
+where
+    S: Storage<Task>,
+{
+    pub fn new(storage: S) -> Self {
+        TaskManager {
+            tasks: Vec::new(),
+            storage,
+        }
+    }
+
+    pub fn save(&self) -> Result<(), S::Error> {
+        self.storage.save(&self.tasks)
+    }
+
+    pub fn load(&mut self) -> Result<(), S::Error> {
+        self.tasks = self.storage.load()?;
+        Ok(())
     }
 
     pub fn add_task(&mut self, description: String) {
@@ -14,6 +31,7 @@ impl TaskManager {
         self.tasks.push(task);
     }
 
+    #[allow(dead_code)]
     pub fn complete_task(&mut self, id: &str) -> bool {
         if let Some(task) = self.tasks.iter_mut().find(|task| task.id == id) {
             task.status = TaskStatus::Complete;
@@ -23,7 +41,12 @@ impl TaskManager {
         }
     }
 
-    pub fn list_tasks(&self) {
+    pub fn list_tasks(&self) -> &Vec<Task> {
+        &self.tasks
+    }
+
+    #[allow(dead_code)]
+    pub fn show_tasks(&self) {
         println!(
             "{:<8} {:<20} {:<12} {}",
             "ID", "Description", "Status", "Created"

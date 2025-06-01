@@ -2,15 +2,16 @@ use crate::random;
 
 use chrono::{DateTime, Utc};
 use random::generate_id;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum TaskStatus {
     Todo,
     InProgress,
     Complete,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Task {
     pub id: String,
     pub description: String,
