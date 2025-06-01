@@ -1,16 +1,17 @@
 mod manager;
 mod random;
+mod storage;
 mod task;
 
-use chrono::Utc;
 use manager::TaskManager;
-use task::{Task, TaskStatus};
+use storage::csv_storage::CsvStorage;
 
 fn main() {
-    let mut task_manager = TaskManager::new();
-    task_manager.add_task("Buy groceries".to_string());
-    task_manager.add_task("Learn Rust traits".to_string());
-    task_manager.add_task("Go for a run".to_string());
+    let storage = CsvStorage::new("tasks.csv".to_string());
+    let mut task_manager = TaskManager::new(storage);
 
-    task_manager.list_tasks();
+    if let Err(e) = task_manager.load() {
+        println!("Could not load tasks: {:?}", e);
+    }
+    task_manager.show_tasks();
 }
