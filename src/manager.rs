@@ -1,4 +1,4 @@
-use crate::storage::Storage;
+use crate::storage::{BoxedStorage, StorageError};
 use crate::task::{Task, TaskStatus};
 
 pub struct TaskManager<S> {
@@ -6,22 +6,19 @@ pub struct TaskManager<S> {
     storage: S,
 }
 
-impl<S> TaskManager<S>
-where
-    S: Storage<Task>,
-{
-    pub fn new(storage: S) -> Self {
+impl TaskManager<BoxedStorage> {
+    pub fn new(storage: BoxedStorage) -> Self {
         TaskManager {
             tasks: Vec::new(),
             storage,
         }
     }
 
-    pub fn save(&self) -> Result<(), S::Error> {
+    pub fn save(&self) -> Result<(), StorageError> {
         self.storage.save(&self.tasks)
     }
 
-    pub fn load(&mut self) -> Result<(), S::Error> {
+    pub fn load(&mut self) -> Result<(), StorageError> {
         self.tasks = self.storage.load()?;
         Ok(())
     }
@@ -67,6 +64,31 @@ where
                 format!("{:?}", task.status),
                 task.created.format("%Y-%m-%d %H:%M")
             );
+        }
+    }
+
+    pub fn find_task_by_prefix(&self, prefix: &str) -> Result<&Task, String> {
+        let matches: Vec<&Task> = self
+            .tasks
+            .iter()
+            .filter(|task| task.id.starts_with(prefix))
+            .collect();
+
+        match matches.len() {
+            0 => Err(format!("No task found with ID starting with '{}'", prefix)),
+            1 => Ok(matches[0]),
+            _ => {
+                let suggestions: Vec<String> = matches
+                    .iter()
+                    .map(|task| format!("  {} - {}", &task.id[..4], task.description))
+                    .collect();
+
+                Err(format!(
+                    "Ambiguous ID '{}'. Multiple tasks match:\n{}\nPlease be more specific.",
+                    prefix,
+                    suggestions.join("\n")
+                ))
+            }
         }
     }
 }
