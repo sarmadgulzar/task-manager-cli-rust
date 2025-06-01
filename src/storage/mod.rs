@@ -18,6 +18,16 @@ pub enum StorageError {
     CsvError(csv::Error),
 }
 
+impl std::fmt::Display for StorageError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            StorageError::IoError(e) => write!(f, "IO error: {}", e),
+            StorageError::JsonError(e) => write!(f, "JSON error: {}", e),
+            StorageError::CsvError(e) => write!(f, "CSV error: {}", e),
+        }
+    }
+}
+
 impl From<io::Error> for StorageError {
     fn from(error: io::Error) -> Self {
         StorageError::IoError(error)

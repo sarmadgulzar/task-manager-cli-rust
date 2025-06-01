@@ -1,5 +1,6 @@
 use crate::storage::{BoxedStorage, StorageError};
 use crate::task::{Task, TaskStatus};
+use crate::cli::TaskStatusShortcut;
 
 pub struct TaskManager<S> {
     tasks: Vec<Task>,
@@ -28,7 +29,6 @@ impl TaskManager<BoxedStorage> {
         self.tasks.push(task);
     }
 
-    #[allow(dead_code)]
     pub fn complete_task(&mut self, id: &str) -> bool {
         if let Some(task) = self.tasks.iter_mut().find(|task| task.id == id) {
             task.status = TaskStatus::Complete;
@@ -38,11 +38,44 @@ impl TaskManager<BoxedStorage> {
         }
     }
 
-    pub fn list_tasks(&self) -> &Vec<Task> {
-        &self.tasks
+    pub fn update_task_status(&mut self, id_prefix: &str, status_shortcut: TaskStatusShortcut) -> Result<(), String> {
+        // Find task by prefix
+        let task_id = {
+            let task = self.find_task_by_prefix(id_prefix)?;
+            task.id.clone()
+        };
+
+        // Update the task status
+        if let Some(task) = self.tasks.iter_mut().find(|task| task.id == task_id) {
+            task.status = match status_shortcut {
+                TaskStatusShortcut::T => TaskStatus::Todo,
+                TaskStatusShortcut::P => TaskStatus::InProgress,
+                TaskStatusShortcut::C => TaskStatus::Complete,
+            };
+            Ok(())
+        } else {
+            Err(format!("Task with ID '{}' not found", id_prefix))
+        }
     }
 
-    #[allow(dead_code)]
+    pub fn delete_task(&mut self, id_prefix: &str) -> Result<(), String> {
+        // Find task by prefix
+        let task_id = {
+            let task = self.find_task_by_prefix(id_prefix)?;
+            task.id.clone()
+        };
+
+        // Remove the task
+        let initial_len = self.tasks.len();
+        self.tasks.retain(|task| task.id != task_id);
+        
+        if self.tasks.len() < initial_len {
+            Ok(())
+        } else {
+            Err(format!("Task with ID '{}' not found", id_prefix))
+        }
+    }
+
     pub fn show_tasks(&self) {
         println!(
             "{:<8} {:<20} {:<12} {}",
